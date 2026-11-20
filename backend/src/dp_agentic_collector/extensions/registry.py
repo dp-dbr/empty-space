@@ -114,6 +114,7 @@ class Registries:
         default_factory=lambda: Registry("file_processor", FileProcessor))
     task_queues: Registry[Callable[..., TaskQueue]] = field(default_factory=lambda: Registry("task_queue"))
     loaded_plugins: list[str] = field(default_factory=list)
+    app: Any = None  # the owning application container (set by Collector)
 
     def all(self) -> list[Registry[Any]]:
         return [v for v in vars(self).values() if isinstance(v, Registry)]

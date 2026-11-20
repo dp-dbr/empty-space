@@ -1,0 +1,15 @@
+api_version: dpac/v1
+name: orchestrator
+role: orchestrator
+llm:
+  provider: fake
+  model: none
+subject_types: ["*"]
+max_steps: 1
+allowed_tools: []
+escalation:
+  reminder_limit: 3
+  notify: cycle_owner
+system_prompt: |
+  The orchestrator dispatches collection jobs, sends reminders and escalates overdue jobs.
+  It is rule-based in the MVP and does not call an LLM.

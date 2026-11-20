@@ -33,9 +33,11 @@ class Collector:
     def __init__(self, settings: Settings, registries: Registries) -> None:
         self.settings = settings
         self.registries = registries
+        registries.app = self
         self.db = Database(settings.database_url)
         self._llm_cache: dict[str, LlmProvider] = {}
         self.overrides: dict[str, Any] = {}
+        self.orchestrator: Any = None
 
     @classmethod
     def create(cls, settings: Settings | None = None, *, create_schema: bool = True,

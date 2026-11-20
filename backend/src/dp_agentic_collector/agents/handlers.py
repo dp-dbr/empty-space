@@ -1,4 +1,4 @@
-"""Wires outbox event types to orchestrator/agent handlers."""
+"""Wires outbox event types to the orchestrator."""
 
 from __future__ import annotations
 
@@ -9,8 +9,7 @@ if TYPE_CHECKING:
 
 
 def register_handlers(app: Collector) -> None:
-    try:
-        from .orchestrator import Orchestrator
-    except ModuleNotFoundError:
-        return
-    Orchestrator(app).register(app.queue)
+    from .orchestrator import Orchestrator
+
+    app.orchestrator = Orchestrator(app)
+    app.orchestrator.register(app.queue)

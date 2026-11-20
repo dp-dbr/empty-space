@@ -228,6 +228,10 @@ class LlmMessage:
     tool_calls: tuple[ToolCall, ...] = ()
     tool_call_id: str | None = None
     is_error: bool = False
+    # Opaque provider-native content (e.g. thinking blocks) that must be replayed unchanged
+    # to the same provider. Ignored by other providers.
+    raw: tuple[dict[str, Any], ...] = ()
+    raw_provider: str = ""
 
 
 @dataclass(frozen=True)
@@ -243,6 +247,12 @@ class LlmResponse:
     tool_calls: tuple[ToolCall, ...] = ()
     stop_reason: str = "end_turn"
     usage: Mapping[str, int] = field(default_factory=dict)
+    raw: tuple[dict[str, Any], ...] = ()
+    raw_provider: str = ""
+
+    def as_message(self) -> LlmMessage:
+        return LlmMessage(role="assistant", content=self.text, tool_calls=self.tool_calls, raw=self.raw,
+                          raw_provider=self.raw_provider)
 
 
 class LlmProvider(ABC):
