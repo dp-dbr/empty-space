@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 from ..domain.entities import CollectionJob, Cycle, Subject
 from ..domain.errors import DomainError
+from ..domain.ids import utcnow
 from ..domain.permissions import ActorContext, agent_allows_tool
 from ..extensions.interfaces import AgentDefinition, ConnectorContext, LlmToolSpec, ToolOutput
 from ..observability import span
@@ -128,7 +129,56 @@ def connector_tools(rc: RunContext) -> list[AgentTool]:
     return out
 
 
-DEFAULT_PROVIDERS: list[ToolProvider] = [internal_tools, connector_tools]
+def attachment_tools(rc: RunContext) -> list[AgentTool]:
+    """Attachments visible to the acting user (own private + shared)."""
+    svc = rc.app.services.attachments
+
+    def list_attachments(rc: RunContext, args: dict[str, Any]) -> ToolOutput:
+        items = svc.list_for_job(rc.actor, rc.job.job_id)
+        return ToolOutput([{"attachment_id": a.attachment_id, "filename": a.filename, "mime_type": a.mime_type,
+                            "visibility": str(a.visibility), "status": str(a.status),
+                            "extracted": a.extracted_text is not None} for a in items])
+
+    def read_attachment(rc: RunContext, args: dict[str, Any]) -> ToolOutput:
+        att = svc.get(rc.actor, str(args.get("attachment_id", "")))
+        if att.extracted_text is None:
+            att = svc.process(rc.actor, att.attachment_id)
+        text = att.extracted_text or ""
+        facts = _facts_in_text(text)
+        content: dict[str, Any] = {"filename": att.filename, "visibility": str(att.visibility), "text": text[:15000]}
+        if facts:
+            content["facts"] = facts
+        private = att.visibility == "private"
+        if private:
+            content["note"] = ("This attachment is private. Facts taken from it need the person's explicit "
+                               "confirmation that they become visible to others.")
+        return ToolOutput(content, sources=({
+            "kind": "attachment", "attachment_id": att.attachment_id, "content_hash": att.content_hash,
+            "location": f"conversation:{att.conversation_id}", "on_behalf_of": rc.actor.user_id,
+            "retrieved_at": utcnow().isoformat(), "private": private},))
+
+    return [
+        AgentTool(LlmToolSpec("list_attachments", "[read] List the files available in this conversation.",
+                              {"type": "object", "properties": {}}), "read", list_attachments),
+        AgentTool(LlmToolSpec("read_attachment", "[read] Read the extracted content of an attachment.",
+                              {"type": "object", "properties": {"attachment_id": {"type": "string"}},
+                               "required": ["attachment_id"]}), "read", read_attachment),
+    ]
+
+
+def _facts_in_text(text: str) -> dict[str, Any]:
+    """Pick up simple 'field: value' lines (helps deterministic test models; real models read the text)."""
+    import re
+
+    out: dict[str, Any] = {}
+    for line in text.splitlines()[:500]:
+        m = re.match(r"^\s*([a-z_][a-z0-9_]*)\s*:\s*(.+?)\s*$", line)
+        if m:
+            out[m.group(1)] = int(m.group(2)) if m.group(2).isdigit() else m.group(2)
+    return out
+
+
+DEFAULT_PROVIDERS: list[ToolProvider] = [internal_tools, attachment_tools, connector_tools]
 
 
 class ToolRuntime:

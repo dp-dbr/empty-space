@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 from typing import TYPE_CHECKING
@@ -67,11 +68,12 @@ class CollectorAgent:
         """Rebuild the LLM view of the conversation (only what the acting user may see)."""
         msgs = self.app.services.conversations.messages(rc.actor, rc.job.job_id)
         att_names: dict[str, str] = {}
-        try:
-            for a in self.app.services.attachments.list_for_job(rc.actor, rc.job.job_id):
-                att_names[a.attachment_id] = f"{a.filename} ({a.mime_type}, {a.visibility})"
-        except ModuleNotFoundError:  # attachments are optional context
-            att_names = {}
+        images: dict[str, ContentPart] = {}
+        for a in self.app.services.attachments.list_for_job(rc.actor, rc.job.job_id):
+            att_names[a.attachment_id] = f"{a.filename} ({a.mime_type}, {a.visibility})"
+            if a.mime_type in ("image/png", "image/jpeg") and a.size <= 5 * 1024 * 1024 and a.status == "active":
+                data = self.app.attachment_store.get(rc.actor.tenant_id, a.content_hash)
+                images[a.attachment_id] = image_part(a.mime_type, base64.b64encode(data).decode())
         out: list[LlmMessage] = []
         for m in msgs:
             if m.sender.kind == ParticipantKind.USER:
@@ -80,7 +82,8 @@ class CollectorAgent:
                     refs = "\n".join(f"[attachment {aid}: {att_names.get(aid, 'unavailable')}]"
                                      for aid in m.attachment_ids)
                     text = f"{text}\n{refs}".strip()
-                out.append(LlmMessage(role="user", content=text))
+                parts = tuple(images[aid] for aid in m.attachment_ids if aid in images)
+                out.append(LlmMessage(role="user", content=text, parts=parts))
             elif m.kind in (MessageKind.TEXT, MessageKind.CONFIRMATION_REQUEST):
                 out.append(LlmMessage(role="assistant", content=m.text))
             elif m.kind in (MessageKind.VALIDATION, MessageKind.CONFLICT, MessageKind.NOTICE):
@@ -90,7 +93,8 @@ class CollectorAgent:
         merged: list[LlmMessage] = []
         for m in out:
             if merged and merged[-1].role == m.role and m.role in ("user", "assistant"):
-                merged[-1] = LlmMessage(role=m.role, content=f"{merged[-1].content}\n\n{m.content}")
+                merged[-1] = LlmMessage(role=m.role, content=f"{merged[-1].content}\n\n{m.content}",
+                                        parts=merged[-1].parts + m.parts)
             else:
                 merged.append(m)
         if not merged or merged[0].role != "user":
