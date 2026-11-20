@@ -48,6 +48,19 @@ class ValidationRule(ABC):
 
 
 @dataclass(frozen=True)
+class ConsolidationIssue:
+    kind: Literal["gap", "contradiction"]
+    check: str
+    subjects: tuple[str, ...]
+    path: str
+    message: str
+
+
+# Receives latest data per lineage_key of one Cycle; returns issues.
+ConsolidationCheck = Callable[[Mapping[str, Mapping[str, Any]]], list[ConsolidationIssue]]
+
+
+@dataclass(frozen=True)
 class SchemaMigration:
     from_version: str
     to_version: str
@@ -74,6 +87,10 @@ class SubjectType(ABC):
     def conversation_guide(self, locale: str) -> str: ...
 
     def migrations(self) -> Sequence[SchemaMigration]:
+        return ()
+
+    def consolidation_checks(self) -> Sequence[ConsolidationCheck]:
+        """Cross-subject checks for a Cycle (optional, added in interface v1 without breaking)."""
         return ()
 
     def supported_locales(self) -> Sequence[str]:

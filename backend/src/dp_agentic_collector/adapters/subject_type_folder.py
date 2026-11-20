@@ -31,9 +31,11 @@ class FolderSubjectType(SubjectType):
         self._env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
         self._rules: list[ValidationRule] = []
         self._migrations: list[SchemaMigration] = []
+        self._consolidation: list[Any] = []
         if manifest.get("rules"):
             module = self._import(folder / manifest["rules"], "rules")
             self._rules = [r() if isinstance(r, type) else r for r in getattr(module, "RULES", [])]
+            self._consolidation = list(getattr(module, "CONSOLIDATION_CHECKS", []))
         if manifest.get("migrations"):
             module = self._import(folder / manifest["migrations"], "migrations")
             self._migrations = list(getattr(module, "MIGRATIONS", []))
@@ -78,3 +80,6 @@ class FolderSubjectType(SubjectType):
 
     def migrations(self) -> Sequence[SchemaMigration]:
         return self._migrations
+
+    def consolidation_checks(self) -> Sequence[Any]:
+        return self._consolidation
