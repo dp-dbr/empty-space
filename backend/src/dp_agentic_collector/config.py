@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="DP_AC_", env_file=".env", extra="ignore")
 
     env: str = "dev"
+    # migrate: alembic upgrade head on start; create_all: metadata.create_all (tests); none
+    schema_mode: str = "migrate"
     database_url: str = "sqlite:///./var/dpac.db"
     data_dir: Path = Path("./var")
     plugins_dirs: list[Path] = Field(default_factory=lambda: [Path(__file__).resolve().parents[2] / "plugins"])

@@ -36,16 +36,17 @@ ENTRY_POINT_GROUP = "dp_agentic_collector.plugins"
 class Registry(Generic[T]):
     """Named registry for one extension point; checks interface compatibility."""
 
-    def __init__(self, point: str, interface: type | None = None) -> None:
+    def __init__(self, point: str, interface: type | None = None, *, factory: bool = False) -> None:
         self.point = point
         self.interface = interface
+        self.factory = factory  # items are factories ``(app) -> implementation``
         self._items: dict[str, T] = {}
         self._origin: dict[str, str] = {}
 
     def register(self, name: str, item: T, *, origin: str = "core", replace: bool = False) -> T:
         if name in self._items and not replace:
             raise ValueError(f"{self.point}: '{name}' already registered by {self._origin[name]}")
-        if self.interface is not None:
+        if self.interface is not None and not self.factory:
             target = item if isinstance(item, type) else type(item)
             if isinstance(target, type) and not issubclass(target, self.interface):
                 raise TypeError(f"{self.point}: {name} does not implement {self.interface.__name__}")
@@ -97,22 +98,22 @@ class Registries:
     channels: Registry[ChannelAdapter] = field(default_factory=lambda: Registry("channel", ChannelAdapter))
     connectors: Registry[DataSourceConnector] = field(
         default_factory=lambda: Registry("data_source_connector", DataSourceConnector))
-    artifact_stores: Registry[Callable[..., ArtifactStore]] = field(default_factory=lambda: Registry("artifact_store"))
-    projections: Registry[Callable[..., Projection]] = field(default_factory=lambda: Registry("projection"))
+    artifact_stores: Registry[Callable[..., ArtifactStore]] = field(default_factory=lambda: Registry("artifact_store", ArtifactStore, factory=True))
+    projections: Registry[Callable[..., Projection]] = field(default_factory=lambda: Registry("projection", Projection, factory=True))
     validation_rules: Registry[ValidationRule] = field(
         default_factory=lambda: Registry("validation_rule", ValidationRule))
-    llm_providers: Registry[Callable[..., LlmProvider]] = field(default_factory=lambda: Registry("llm_provider"))
+    llm_providers: Registry[Callable[..., LlmProvider]] = field(default_factory=lambda: Registry("llm_provider", LlmProvider, factory=True))
     agent_definitions: Registry[AgentDefinition] = field(
         default_factory=lambda: Registry("agent_definition", AgentDefinition))
     identity_providers: Registry[Callable[..., IdentityProvider]] = field(
-        default_factory=lambda: Registry("identity_provider"))
+        default_factory=lambda: Registry("identity_provider", IdentityProvider, factory=True))
     credential_vaults: Registry[Callable[..., CredentialVault]] = field(
-        default_factory=lambda: Registry("credential_vault"))
+        default_factory=lambda: Registry("credential_vault", CredentialVault, factory=True))
     attachment_stores: Registry[Callable[..., AttachmentStore]] = field(
-        default_factory=lambda: Registry("attachment_store"))
+        default_factory=lambda: Registry("attachment_store", AttachmentStore, factory=True))
     file_processors: Registry[FileProcessor] = field(
         default_factory=lambda: Registry("file_processor", FileProcessor))
-    task_queues: Registry[Callable[..., TaskQueue]] = field(default_factory=lambda: Registry("task_queue"))
+    task_queues: Registry[Callable[..., TaskQueue]] = field(default_factory=lambda: Registry("task_queue", TaskQueue, factory=True))
     loaded_plugins: list[str] = field(default_factory=list)
     app: Any = None  # the owning application container (set by Collector)
 

@@ -10,7 +10,7 @@ from dp_agentic_collector.domain.enums import Role
 
 def make_settings(tmp_path, **kw) -> Settings:
     return Settings(database_url=f"sqlite:///{tmp_path}/t.db", data_dir=tmp_path / "data",
-                    vault_keys=Fernet.generate_key().decode(), run_worker=False, log_json=False,
+                    vault_keys=Fernet.generate_key().decode(), run_worker=False, log_json=False, schema_mode="create_all",
                     default_llm_provider="fake",
                     _env_file=None, **kw)
 

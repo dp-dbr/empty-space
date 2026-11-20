@@ -52,13 +52,26 @@ class Collector:
             registries.load_entry_points(exclude={"builtin"})
             for d in settings.plugins_dirs:
                 registries.load_plugins_dir(d)
+            if settings.agents_dir:
+                from .agents.definitions import load_dir
+
+                for definition in load_dir(Path(settings.agents_dir)):
+                    registries.agent_definitions.register(definition.name, definition,
+                                                          origin=f"dir:{settings.agents_dir}", replace=True)
         app = cls(settings, registries)
         if create_schema:
-            app.db.create_all()
+            app.init_schema()
         from .agents.handlers import register_handlers
 
         register_handlers(app)
         return app
+
+    def init_schema(self) -> None:
+        mode = self.settings.schema_mode
+        if mode == "create_all":
+            self.db.create_all()
+        elif mode == "migrate":
+            migrate(self.settings.database_url)
 
     # --- active infrastructure --------------------------------------------------------
     @cached_property
@@ -103,3 +116,14 @@ class Collector:
         q = self.queue
         return q.drain() if hasattr(q, "drain") else q.run_pending()
 
+
+
+def migrate(database_url: str, revision: str = "head") -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    root = Path(__file__).resolve().parents[2]
+    cfg = Config(str(root / "alembic.ini"))
+    cfg.set_main_option("script_location", str(root / "migrations"))
+    cfg.attributes["url"] = database_url
+    command.upgrade(cfg, revision)

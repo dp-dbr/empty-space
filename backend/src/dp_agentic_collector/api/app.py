@@ -33,6 +33,7 @@ def create_app(collector: Collector | None = None, *, start_worker: bool | None 
     async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
         if run_worker:
             collector.queue.start()
+            collector.orchestrator.start_scheduler()
         if mcp_app is not None and hasattr(mcp_app, "router") and getattr(mcp_app.router, "lifespan_context", None):
             async with mcp_app.router.lifespan_context(mcp_app):
                 yield
@@ -40,6 +41,7 @@ def create_app(collector: Collector | None = None, *, start_worker: bool | None 
             yield
         if run_worker:
             collector.queue.stop()
+            collector.orchestrator.stop_scheduler()
 
     app = FastAPI(title="DP Agentic Collector API", version=API_VERSION, lifespan=lifespan,
                   openapi_url="/api/v1/openapi.json", docs_url="/api/v1/docs")
