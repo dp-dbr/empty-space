@@ -1,0 +1,85 @@
+[project]
+name = "dp-agentic-collector"
+version = "0.1.0"
+description = "DP Agentic Collector — agentic information collection core"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "Proprietary" }
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "sqlalchemy>=2.0",
+  "alembic>=1.13",
+  "jinja2>=3.1",
+  "jsonschema>=4.22",
+  "deepdiff>=7.0",
+  "pygit2>=1.15",
+  "mcp>=1.10",
+  "typer>=0.12",
+  "argon2-cffi>=23.1",
+  "authlib>=1.3",
+  "cryptography>=42",
+  "opentelemetry-api>=1.25",
+  "opentelemetry-sdk>=1.25",
+  "opentelemetry-exporter-otlp-proto-http>=1.25",
+  "pypdf>=4.2",
+  "python-docx>=1.1",
+  "openpyxl>=3.1",
+  "python-magic>=0.4.27",
+  "anthropic>=0.30",
+  "openai>=1.35",
+  "httpx>=0.27",
+  "pyyaml>=6.0",
+  "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "pytest-timeout>=2.3",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "types-PyYAML",
+  "types-jsonschema",
+]
+
+[project.scripts]
+dpac = "dp_agentic_collector.cli:app"
+
+[project.entry-points."dp_agentic_collector.plugins"]
+builtin = "dp_agentic_collector.builtin:register"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dp_agentic_collector"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 120
+addopts = "-q"
+markers = ["e2e: end-to-end tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "W"]
+ignore = ["E501", "B008", "UP046", "UP047"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = false
+files = ["src/dp_agentic_collector/domain", "src/dp_agentic_collector/extensions"]
