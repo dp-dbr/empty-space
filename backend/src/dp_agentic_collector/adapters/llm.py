@@ -233,6 +233,10 @@ class FakeLlm(LlmProvider):
             return LlmResponse(text="Thanks — I have recorded this. Please review the proposed facts and "
                                     "confirm them, or tell me what to change.")
         text = last.content or ""
+        if text.startswith("[system notice]"):
+            if "rejected" in text:
+                return LlmResponse(text="Understood, I did not write anything.")
+            return LlmResponse(text="Thanks — the write was carried out. What else can you tell me?")
         lower = text.lower()
         fields = _schema_fields(system)
         facts = []

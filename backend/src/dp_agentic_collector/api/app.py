@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -79,7 +80,30 @@ def create_app(collector: Collector | None = None, *, start_worker: bool | None 
 
     if mcp_app is not None:
         app.mount("/mcp", mcp_app)
+    if collector.settings.web_dist and Path(collector.settings.web_dist).is_dir():
+        _mount_spa(app, Path(collector.settings.web_dist))
     return app
+
+
+def _mount_spa(app: FastAPI, dist: Path) -> None:
+    """Serve the built single-page app; unknown paths fall back to index.html."""
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+    index = dist / "index.html"
+    reserved = ("api/", "mcp", "oauth/", ".well-known/")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def spa(full_path: str) -> FileResponse:
+        from ..domain.errors import NotFound
+
+        if full_path.startswith(reserved):
+            raise NotFound("not found")
+        candidate = (dist / full_path).resolve()
+        if full_path and candidate.is_file() and dist.resolve() in candidate.parents:
+            return FileResponse(candidate)
+        return FileResponse(index, headers={"Cache-Control": "no-cache"})
 
 
 def _jsonable(v: Any) -> Any:

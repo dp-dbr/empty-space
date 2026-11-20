@@ -1050,7 +1050,7 @@ export interface components {
              * Comment
              * @default
              */
-            comment: string;
+            comment?: string;
         };
         /** ArtifactOut */
         ArtifactOut: {
@@ -1120,7 +1120,7 @@ export interface components {
              * Outcome
              * @default ok
              */
-            outcome: string;
+            outcome?: string;
             /** Resource */
             resource: string;
             /** Tenant Id */
@@ -1138,14 +1138,14 @@ export interface components {
              * Code Challenge Method
              * @default S256
              */
-            code_challenge_method: string;
+            code_challenge_method?: string;
             /** Redirect Uri */
             redirect_uri: string;
             /**
              * Scope
              * @default dpac.read
              */
-            scope: string;
+            scope?: string;
             /** State */
             state?: string | null;
         };
@@ -1177,7 +1177,7 @@ export interface components {
              * Visibility
              * @default private
              */
-            visibility: string;
+            visibility?: string;
         };
         /** CollectionJob */
         CollectionJob: {
@@ -1189,7 +1189,7 @@ export interface components {
              * Channel
              * @default web
              */
-            channel: string;
+            channel?: string;
             /** Conflict */
             conflict?: {
                 [key: string]: unknown;
@@ -1218,9 +1218,9 @@ export interface components {
              * Reminders Sent
              * @default 0
              */
-            reminders_sent: number;
+            reminders_sent?: number;
             /** @default created */
-            state: components["schemas"]["JobState"];
+            state?: components["schemas"]["JobState"];
             /**
              * State Changed At
              * Format: date-time
@@ -1237,7 +1237,7 @@ export interface components {
              * Access Mode
              * @default read
              */
-            access_mode: string;
+            access_mode?: string;
             /** Api Key */
             api_key?: string | null;
             /** Server Id */
@@ -1269,7 +1269,7 @@ export interface components {
              * Agent Definition
              * @default collector
              */
-            agent_definition: string;
+            agent_definition?: string;
             /**
              * Created At
              * Format: date-time
@@ -1283,12 +1283,12 @@ export interface components {
              * Escalate After Days
              * @default 7
              */
-            escalate_after_days: number;
+            escalate_after_days?: number;
             /**
              * Locale
              * @default en
              */
-            locale: string;
+            locale?: string;
             /** Name */
             name: string;
             /** Owner Id */
@@ -1298,19 +1298,19 @@ export interface components {
             /** Previous Cycle Id */
             previous_cycle_id?: string | null;
             /** @default one_off */
-            recurrence: components["schemas"]["CycleRecurrence"];
+            recurrence?: components["schemas"]["CycleRecurrence"];
             /**
              * Reminder After Days
              * @default 3
              */
-            reminder_after_days: number;
+            reminder_after_days?: number;
             /**
              * Scope
              * @default
              */
-            scope: string;
+            scope?: string;
             /** @default planned */
-            status: components["schemas"]["CycleStatus"];
+            status?: components["schemas"]["CycleStatus"];
             /** Subject Type */
             subject_type: string;
             /** Tenant Id */
@@ -1322,19 +1322,19 @@ export interface components {
              * Agent Definition
              * @default collector
              */
-            agent_definition: string;
+            agent_definition?: string;
             /** Due Date */
             due_date?: string | null;
             /**
              * Escalate After Days
              * @default 7
              */
-            escalate_after_days: number;
+            escalate_after_days?: number;
             /**
              * Locale
              * @default en
              */
-            locale: string;
+            locale?: string;
             /** Name */
             name: string;
             /** Previous Cycle Id */
@@ -1343,22 +1343,22 @@ export interface components {
              * Recurrence
              * @default one_off
              */
-            recurrence: string;
+            recurrence?: string;
             /**
              * Reminder After Days
              * @default 3
              */
-            reminder_after_days: number;
+            reminder_after_days?: number;
             /**
              * Scope
              * @default
              */
-            scope: string;
+            scope?: string;
             /**
              * Subject Type
              * @default application
              */
-            subject_type: string;
+            subject_type?: string;
         };
         /**
          * CycleRecurrence
@@ -1382,14 +1382,14 @@ export interface components {
              * From Factsheet
              * @default
              */
-            from_factsheet: string;
+            from_factsheet?: string;
             /** From Ref */
             from_ref: string;
             /**
              * To Factsheet
              * @default
              */
-            to_factsheet: string;
+            to_factsheet?: string;
             /** To Ref */
             to_ref: string;
         };
@@ -1416,18 +1416,18 @@ export interface components {
              * Rationale
              * @default
              */
-            rationale: string;
+            rationale?: string;
             /**
              * Requires Visibility Confirmation
              * @default false
              */
-            requires_visibility_confirmation: boolean;
+            requires_visibility_confirmation?: boolean;
             /** Sources */
             sources?: {
                 [key: string]: unknown;
             }[];
             /** @default proposed */
-            status: components["schemas"]["ProposalStatus"];
+            status?: components["schemas"]["ProposalStatus"];
             /** Tenant Id */
             tenant_id: string;
             /** Value */
@@ -1439,7 +1439,7 @@ export interface components {
              * Permission
              * @default read
              */
-            permission: string;
+            permission?: string;
             /** User Id */
             user_id: string;
         };
@@ -1463,7 +1463,7 @@ export interface components {
              * Tenant
              * @default default
              */
-            tenant: string;
+            tenant?: string;
         };
         /** McpServerIn */
         McpServerIn: {
@@ -1471,19 +1471,19 @@ export interface components {
              * Auth Type
              * @default none
              */
-            auth_type: string;
+            auth_type?: string;
             /**
              * Description
              * @default
              */
-            description: string;
+            description?: string;
             /** Endpoint */
             endpoint: string;
             /**
              * Max Access Mode
              * @default read
              */
-            max_access_mode: string;
+            max_access_mode?: string;
             /** Name */
             name: string;
             /** Oauth */
@@ -1498,7 +1498,7 @@ export interface components {
              * Transport
              * @default streamable_http
              */
-            transport: string;
+            transport?: string;
         };
         /** McpServerOut */
         McpServerOut: {
@@ -1577,7 +1577,7 @@ export interface components {
              * Text
              * @default
              */
-            text: string;
+            text?: string;
             /** Visible To */
             visible_to?: string[] | null;
         };
@@ -1589,7 +1589,7 @@ export interface components {
              * Text
              * @default
              */
-            text: string;
+            text?: string;
         };
         /**
          * MessageKind
@@ -1602,7 +1602,7 @@ export interface components {
              * Display
              * @default
              */
-            display: string;
+            display?: string;
             kind: components["schemas"]["ParticipantKind"];
             /** Ref */
             ref: string;
@@ -1639,7 +1639,7 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             /** @default pending */
-            status: components["schemas"]["PendingActionStatus"];
+            status?: components["schemas"]["PendingActionStatus"];
             /** Summary */
             summary: string;
             /** Target */
@@ -1666,7 +1666,7 @@ export interface components {
              * Visibility Ack
              * @default false
              */
-            visibility_ack: boolean;
+            visibility_ack?: boolean;
         };
         /**
          * ProposalStatus
@@ -1679,7 +1679,7 @@ export interface components {
              * Change Reason
              * @default submitted after conflict resolution
              */
-            change_reason: string;
+            change_reason?: string;
             /** Resolutions */
             resolutions: {
                 [key: string]: unknown;
@@ -1741,7 +1741,7 @@ export interface components {
              * Permission
              * @default read
              */
-            permission: string;
+            permission?: string;
             /** Subject Id */
             subject_id: string;
             /** Tenant Id */
@@ -1757,7 +1757,7 @@ export interface components {
              * Channel
              * @default web
              */
-            channel: string;
+            channel?: string;
             /** Due Date */
             due_date?: string | null;
             /** Lineage Key */
@@ -1777,7 +1777,7 @@ export interface components {
              * Change Reason
              * @default submitted
              */
-            change_reason: string;
+            change_reason?: string;
         };
         /** SubmitOut */
         SubmitOut: {
@@ -1802,7 +1802,7 @@ export interface components {
              * Locale
              * @default en
              */
-            locale: string;
+            locale?: string;
             /** Name */
             name: string;
             /** Password */

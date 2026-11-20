@@ -7,7 +7,12 @@ const backend = process.env.DPAC_BACKEND_URL ?? "http://localhost:8000";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+    },
+  },
+  build: { chunkSizeWarningLimit: 4000 },
   server: {
     port: 5173,
     proxy: { "/api": backend, "/mcp": backend, "/oauth": backend },

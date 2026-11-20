@@ -134,6 +134,9 @@ def test_write_requires_confirmation_then_executes(app, world, servers, two_jobs
     with app.db.uow(world.tenant.tenant_id) as uow:
         assert uow.repo(PendingAction).get(actions[0].action_id).status == "executed"
     assert any(e.action == "mcp.call" and e.details.get("confirmed") for e in s.tenancy.audit_log(alice, mine=True))
+    # the agent continues without asking for the same write again
+    assert [a.status for a in s.conversations.pending_actions(alice, job_a.job_id)] == ["executed"]
+    assert "carried out" in s.conversations.messages(alice, job_a.job_id)[-1].text
 
 
 def test_revoked_and_expired_connections_degrade_gracefully(app, world, servers, two_jobs, fixture_server):

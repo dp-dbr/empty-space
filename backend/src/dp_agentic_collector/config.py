@@ -53,4 +53,5 @@ class Settings(BaseSettings):
     otlp_endpoint: str | None = None
     log_json: bool = True
     mcp_allowed_hosts: list[str] = Field(default_factory=list)
+    web_dist: Path | None = None  # serve the built frontend (single-process deployments, e2e)
     default_tenant: str = "default"
