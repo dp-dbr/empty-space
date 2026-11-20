@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dp-agentic-collector/schemas/application/1",
+  "title": "Application",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "business_owner", "criticality"],
+  "properties": {
+    "name": {"type": "string", "minLength": 1, "description": "Name of the application"},
+    "business_owner": {"type": "string", "minLength": 1, "description": "Accountable business owner (prefer a user reference 'user:<id>' or a role/team)"},
+    "technical_owner": {"type": "string", "minLength": 1, "description": "Responsible technical owner (prefer 'user:<id>' or a team)"},
+    "number_of_users": {"type": "integer", "minimum": 0, "description": "Approximate number of users"},
+    "criticality": {"type": "string", "enum": ["low", "medium", "high"], "description": "Business criticality"},
+    "technologies": {"type": "array", "items": {"type": "string"}, "uniqueItems": true, "description": "Main technologies"},
+    "interfaces": {"type": "array", "items": {"type": "string"}, "uniqueItems": true, "description": "Other applications this one exchanges data with (their lineage keys or names)"}
+  }
+}

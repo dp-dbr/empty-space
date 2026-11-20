@@ -1,0 +1,31 @@
+# Application: {{ data.name | default(ctx.subject.name) }}
+
+| Field | Value |
+|---|---|
+| Business owner | {{ data.business_owner | default("—") }} |
+| Technical owner | {{ data.technical_owner | default("—") }} |
+| Number of users | {{ data.number_of_users | default("—") }} |
+| Criticality | {{ data.criticality | default("—") }} |
+| Technologies | {{ (data.get("technologies") or []) | join(", ") or "—" }} |
+| Interfaces | {{ (data.get("interfaces") or []) | join(", ") or "—" }} |
+
+## Context and rationale
+{% for r in ctx.rationale %}- `{{ r.path }}`: {{ r.rationale }}
+{% else %}_No additional context recorded._
+{% endfor %}
+
+## Sources
+{% for s in ctx.sources %}- {{ s.kind }}{% if s.server %} · {{ s.server }}/{{ s.tool }}{% endif %}{% if s.attachment_id %} · attachment {{ s.attachment_id }} ({{ s.content_hash }}){% endif %}{% if s.reference %} · {{ s.reference }}{% endif %} — retrieved {{ s.retrieved_at }} on behalf of {{ s.on_behalf_of }}{% if s.fields %} · fields: {{ s.fields | join(", ") }}{% endif %}
+{% else %}_Stated by the respondent._
+{% endfor %}
+
+## Open points
+{% for p in ctx.open_points %}- {{ p }}
+{% else %}_None._
+{% endfor %}
+
+## Changes since previous version{% if ctx.previous_version %} (v{{ ctx.previous_version }}){% endif %}
+
+{% for c in ctx.changes %}- `{{ c.path }}` {{ c.change }}{% if c.change == "changed" %}: {{ c.old | tojson }} → {{ c.new | tojson }}{% elif c.change == "added" %}: {{ c.new | tojson }}{% endif %}
+{% else %}_No changes._
+{% endfor %}

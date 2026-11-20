@@ -1,0 +1,31 @@
+# Application : {{ data.name | default(ctx.subject.name) }}
+
+| Champ | Valeur |
+|---|---|
+| Responsable métier | {{ data.business_owner | default("—") }} |
+| Responsable technique | {{ data.technical_owner | default("—") }} |
+| Nombre d’utilisateurs | {{ data.number_of_users | default("—") }} |
+| Criticité | {{ data.criticality | default("—") }} |
+| Technologies | {{ (data.get("technologies") or []) | join(", ") or "—" }} |
+| Interfaces | {{ (data.get("interfaces") or []) | join(", ") or "—" }} |
+
+## Contexte et justification
+{% for r in ctx.rationale %}- `{{ r.path }}`: {{ r.rationale }}
+{% else %}_Aucun contexte supplémentaire._
+{% endfor %}
+
+## Sources
+{% for s in ctx.sources %}- {{ s.kind }}{% if s.server %} · {{ s.server }}/{{ s.tool }}{% endif %}{% if s.attachment_id %} · attachment {{ s.attachment_id }} ({{ s.content_hash }}){% endif %}{% if s.reference %} · {{ s.reference }}{% endif %} — récupéré {{ s.retrieved_at }} pour {{ s.on_behalf_of }}{% if s.fields %} · fields: {{ s.fields | join(", ") }}{% endif %}
+{% else %}_Indiqué par la personne interrogée._
+{% endfor %}
+
+## Points ouverts
+{% for p in ctx.open_points %}- {{ p }}
+{% else %}_Aucun._
+{% endfor %}
+
+## Modifications depuis la version précédente{% if ctx.previous_version %} (v{{ ctx.previous_version }}){% endif %}
+
+{% for c in ctx.changes %}- `{{ c.path }}` {{ c.change }}{% if c.change == "changed" %}: {{ c.old | tojson }} → {{ c.new | tojson }}{% elif c.change == "added" %}: {{ c.new | tojson }}{% endif %}
+{% else %}_Aucune modification._
+{% endfor %}

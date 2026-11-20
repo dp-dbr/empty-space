@@ -1,0 +1,16 @@
+# SubjectType folder package (extension point 1). Loaded from DP_AC_PLUGINS_DIRS.
+name: application
+schema_version: "1"
+title: {en: Application, de: Applikation, fr: Application, it: Applicazione}
+schema: schema.json
+rules: rules.py
+templates:
+  en: factsheet.en.md.j2
+  de: factsheet.de.md.j2
+  fr: factsheet.fr.md.j2
+  it: factsheet.it.md.j2
+guides:
+  en: guide.en.md
+  de: guide.de.md
+  fr: guide.fr.md
+  it: guide.it.md
