@@ -50,4 +50,5 @@ class Settings(BaseSettings):
     login_rate_limit: int = 10  # attempts per 5 minutes per (tenant, email)
     otlp_endpoint: str | None = None
     log_json: bool = True
+    mcp_allowed_hosts: list[str] = Field(default_factory=list)
     default_tenant: str = "default"

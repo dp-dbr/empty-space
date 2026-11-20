@@ -35,7 +35,8 @@ def _register_optional(r: Any) -> None:
     """Extension points implemented in later modules; imported lazily to keep startup light."""
     import importlib
 
-    for mod in ("adapters.llm", "adapters.channels", "adapters.connectors", "adapters.file_processors",
+    for mod in ("adapters.llm", "adapters.channels", "adapters.connectors", "adapters.mcp_connector",
+                "adapters.file_processors",
                 "agents.definitions"):
         try:
             module = importlib.import_module(f"{__package__}.{mod}")

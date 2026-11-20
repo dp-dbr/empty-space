@@ -282,9 +282,10 @@ class ArtifactService(ServiceBase):
                 return violations
         if store.latest_version(actor.tenant_id, subject.subject_id) != version_no:
             return violations  # superseded meanwhile; nothing to mark
-        self._put(actor, subject, cycle, based_on=version_no, status=ArtifactStatus.VALIDATED, data=version.data,
-                  reason="validated (schema + rules)", sources=list(version.header.sources),
-                  factsheet_body=version.factsheet_body)
+        validated = self._put(actor, subject, cycle, based_on=version_no, status=ArtifactStatus.VALIDATED,
+                              data=version.data, reason="validated (schema + rules)",
+                              sources=list(version.header.sources), factsheet_body=version.factsheet_body)
+        self._advance_base(actor, subject.subject_id, version_no, validated.header.version)
         with self.db.uow(actor.tenant_id) as uow:
             conv = self.app.services.conversations._conversation(uow, job_id)
             uow.repo(Message).add(Message(
@@ -293,6 +294,13 @@ class ArtifactService(ServiceBase):
                 kind=MessageKind.VALIDATION, text="Your submission passed validation and awaits approval.",
                 payload={"version": version_no + 1, "violations": [v.__dict__ for v in violations]}))
         return violations
+
+    def _advance_base(self, actor: ActorContext, subject_id: str, old: int, new: int) -> None:
+        """Status-only versions keep the content: jobs based on ``old`` move to ``new``."""
+        with self.db.uow(actor.tenant_id) as uow:
+            for job in uow.repo(CollectionJob).list(subject_id=subject_id, base_version=old):
+                job.base_version = new
+                uow.repo(CollectionJob).save(job)
 
     # --- cycle owner actions ------------------------------------------------------------------
     def approve(self, actor: ActorContext, subject_id: str, comment: str = "") -> ArtifactVersion:
@@ -307,6 +315,7 @@ class ArtifactService(ServiceBase):
         version = self._put(actor, subject, cycle, based_on=latest.header.version, status=ArtifactStatus.APPROVED,
                             data=latest.data, reason=f"approved by {actor.user_id}" + (f": {comment}" if comment else ""),
                             sources=list(latest.header.sources), factsheet_body=latest.factsheet_body)
+        self._advance_base(actor, subject_id, latest.header.version, version.header.version)
         with self.db.uow(actor.tenant_id) as uow:
             for job in uow.repo(CollectionJob).list(subject_id=subject_id):
                 if job.state == JobState.SUBMITTED:
