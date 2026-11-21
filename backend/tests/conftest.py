@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import pytest
 from cryptography.fernet import Fernet
 
@@ -7,12 +9,26 @@ from dp_agentic_collector.config import Settings
 from dp_agentic_collector.container import Collector
 from dp_agentic_collector.domain.enums import Role
 
+TEST_DB = os.environ.get("DP_AC_TEST_DATABASE_URL")  # e.g. postgresql+psycopg://dpac@127.0.0.1:5544/dpac_test
+
 
 def make_settings(tmp_path, **kw) -> Settings:
-    return Settings(database_url=f"sqlite:///{tmp_path}/t.db", data_dir=tmp_path / "data",
+    if TEST_DB:
+        _reset_db(TEST_DB)
+    return Settings(database_url=TEST_DB or f"sqlite:///{tmp_path}/t.db", data_dir=tmp_path / "data",
                     vault_keys=Fernet.generate_key().decode(), run_worker=False, log_json=False, schema_mode="create_all",
                     default_llm_provider="fake",
                     _env_file=None, **kw)
+
+
+def _reset_db(url: str) -> None:
+    from sqlalchemy import create_engine
+
+    from dp_agentic_collector.adapters.sql.schema import metadata
+
+    engine = create_engine(url)
+    metadata.drop_all(engine)
+    engine.dispose()
 
 
 @pytest.fixture

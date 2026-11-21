@@ -18,12 +18,12 @@ Record every assumption or deviation as an ADR in `docs/decisions/` (copy `0000-
 ```bash
 cd backend
 uv sync                         # install
-uv run pytest                   # all backend tests (incl. e2e with FakeLLM)
+uv run pytest                   # all backend tests (incl. e2e with FakeLLM); DP_AC_TEST_DATABASE_URL=postgresql+psycopg://... for Postgres
 uv run ruff check . && uv run mypy
 uv run dpac db upgrade          # alembic migrations
 uv run alembic revision --autogenerate -m "..."   # new migration after schema change
 uv run dpac serve               # API + worker
-uv run dpac openapi > ../docs/openapi.json        # refresh the API contract
+uv run dpac openapi --output ../docs/openapi.json # refresh the API contract (then npm run gen:api)
 cd ../frontend
 npm ci && npm run gen:api       # typed client from docs/openapi.json
 npm run lint && npm run build

@@ -15,6 +15,24 @@ jobs:
       - run: uv run ruff check .
       - run: uv run mypy
       - run: uv run pytest
+  backend-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: dpac, POSTGRES_PASSWORD: dpac, POSTGRES_DB: dpac_test }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    defaults: { run: { working-directory: backend } }
+    env:
+      DP_AC_TEST_DATABASE_URL: postgresql+psycopg://dpac:dpac@localhost:5432/dpac_test
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libmagic1
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - run: uv sync --frozen --extra postgres
+      - run: uv run pytest --ignore=tests/test_migrations.py
   frontend:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: frontend } }

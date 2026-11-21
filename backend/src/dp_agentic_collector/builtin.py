@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 def register(r: Registries) -> None:
     from .adapters.attachment_store import FilesystemAttachmentStore
     from .adapters.git_store import GitArtifactStore
-    from .adapters.identity import LocalIdentityProvider
+    from .adapters.identity import LocalIdentityProvider, OidcIdentityProvider
     from .adapters.projection import SqlProjection
     from .adapters.task_queue import InProcessTaskQueue
     from .adapters.vault import DbCredentialVault, load_keys
@@ -21,6 +21,9 @@ def register(r: Registries) -> None:
     r.artifact_stores.register("git", lambda app: GitArtifactStore(Path(app.settings.data_dir) / "artifacts"))
     r.projections.register("sql", lambda app: SqlProjection(app.db))
     r.identity_providers.register("local", lambda app: LocalIdentityProvider(app.db))
+    r.identity_providers.register("oidc", lambda app: OidcIdentityProvider(
+        app.db, app.settings.oidc_issuer or "", app.settings.oidc_client_id or "",
+        app.settings.oidc_client_secret or "", f"{app.settings.public_base_url}/api/v1/auth/oidc/callback"))
     r.credential_vaults.register(
         "db", lambda app: DbCredentialVault(app.db, load_keys(app.settings.vault_keys, Path(app.settings.data_dir))))
     r.attachment_stores.register(

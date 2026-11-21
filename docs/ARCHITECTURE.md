@@ -15,7 +15,7 @@ Names in this table are used identically in code, docs, API and tests.
 | **Cycle** | `Cycle`, `cycle_id` | A named collection round (e.g. `app-inventory-2026-Q4`) with scope, owner, participants, deadlines; one-off or recurring. Used *only* for this domain concept. |
 | **Subject** | `Subject`, `subject_id` | The thing information is collected about (e.g. one application). Cycle-scoped; `lineage_key` links the same real-world thing across Cycles (ADR-0003). |
 | **SubjectType** | `SubjectType` | Plugin describing a kind of Subject: JSON Schema, factsheet template, ValidationRules, conversation guide. |
-| **CollectionJob** | `CollectionJob`, `job_id` | Assignment of one Subject to one assignee within a Cycle. Has a persisted **state machine**. |
+| **CollectionJob** | `CollectionJob`, `job_id` | Assignment of one Subject to one assignee within a Cycle; a Subject can have several jobs (ADR-0017). Has a persisted **state machine** and its own `base_version`. |
 | **Conversation** | `Conversation` | The persisted, resumable exchange belonging to a CollectionJob. |
 | **Participant** | `Participant` | A member of a Conversation: a user (`kind=user`) or an agent (`kind=agent`). |
 | **Message** | `Message` | One entry in a Conversation (text, fact proposal, confirmation request, system notice). |
@@ -31,6 +31,7 @@ Names in this table are used identically in code, docs, API and tests.
 | **Write confirmation** | `PendingAction` | A write tool call that waits for explicit user confirmation. |
 | **Auth session** | `AuthSession` | A login session (cookie) of a user. Never called "session" alone. |
 | **Provenance / sources** | `SourceRef` | Where an externally obtained fact came from (MCP tool or attachment), when, on whose behalf. |
+| **Consolidation report** | `ConsolidationService.report` | Gaps and contradictions across the subjects of one Cycle (ADR-0021). |
 | **Actor context** | `ActorContext` | Who acts: tenant, user, roles, optional agent run, trace id. Passed to every service call. |
 
 Wording rules: "state machine" (never "lifecycle") for job and artifact states; "auth session"
@@ -315,7 +316,7 @@ and map to the same `ActorContext` and permission filtering as the API.
 erasing a user pseudonymizes the user row (name/email/external ids removed) and deletes their
 credentials, auth sessions and private attachments' content. Personal data accidentally written
 into factsheet text is handled by a *redaction version* plus, if legally required, a documented
-history rewrite of the tenant repository (`dpac admin erase-text`), which is an explicit,
+history rewrite of the tenant repository (operator procedure; `dpac admin erase-text` tooling is planned for phase 2), which is an explicit,
 audited operator action.
 
 ## 11. Agents and asynchronous flow
@@ -354,3 +355,26 @@ always using the cycle owner's or assignee's context.
   `tool.call`, `mcp.call`. OTLP exporter enabled via `DP_AC_OTLP_ENDPOINT`.
 * JSON logs carry `trace_id`, `tenant_id`, `user_id`; a redaction filter drops tokens/secrets.
 * `AuditEvent` rows for every user, agent, tool and attachment action, including denials.
+
+## 13. Deployment
+
+* `docker compose up --build`: PostgreSQL, API (`dpac serve`, migrations on start), worker
+  (`dpac worker`), web (nginx serving the SPA and proxying API/MCP/OAuth). OCI images only, no
+  cloud-provider services.
+* Single process (dev/E2E): `dpac serve` with `DP_AC_RUN_WORKER=true` and optionally
+  `DP_AC_WEB_DIST` (ADR-0016, ADR-0020).
+* `python -m dp_agentic_collector.testing.e2e_server` starts fixture MCP servers, a seeded demo
+  tenant (FakeLlm) and the UI — used by Playwright.
+
+## 14. Test strategy
+
+| Layer | Where |
+|---|---|
+| Architecture guardrails (import rules) | `tests/test_architecture.py` |
+| Contract tests: ArtifactStore implementations, LLM adapters | `tests/contract/` |
+| Services, permissions, attachments, orchestrator, consolidation | `tests/test_*.py` |
+| Plugins (SubjectType `application`) | `tests/plugins/` |
+| End-to-end with FakeLlm (versioning, MCP delegated access, MCP server, private attachments, tenant isolation) | `tests/e2e/` |
+| UI flows (Playwright) | `frontend/e2e/` |
+
+The backend suite runs on SQLite and, in CI, on PostgreSQL (`DP_AC_TEST_DATABASE_URL`).

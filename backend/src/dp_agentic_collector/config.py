@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     public_base_url: str = "http://localhost:8000"
     cookie_secure: bool = False
     login_rate_limit: int = 10  # attempts per 5 minutes per (tenant, email)
+    # OIDC login (identity_provider=oidc); any compliant IdP (Entra ID, Keycloak, Okta, ...)
+    oidc_issuer: str | None = None
+    oidc_client_id: str | None = None
+    oidc_client_secret: str | None = None
     otlp_endpoint: str | None = None
     log_json: bool = True
     mcp_allowed_hosts: list[str] = Field(default_factory=list)

@@ -882,6 +882,19 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "JobIn": {
+        "properties": {
+          "assignee_id": {
+            "title": "Assignee Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignee_id"
+        ],
+        "title": "JobIn",
+        "type": "object"
+      },
       "JobState": {
         "enum": [
           "created",
@@ -4508,6 +4521,58 @@
           }
         },
         "summary": "History",
+        "tags": [
+          "cycles"
+        ]
+      }
+    },
+    "/api/v1/subjects/{subject_id}/jobs": {
+      "post": {
+        "operationId": "add_job_api_v1_subjects__subject_id__jobs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Job",
         "tags": [
           "cycles"
         ]
