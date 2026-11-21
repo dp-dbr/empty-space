@@ -232,18 +232,23 @@ class FakeLlm(LlmProvider):
                     }),), stop_reason="tool_use")
             return LlmResponse(text="Thanks — I have recorded this. Please review the proposed facts and "
                                     "confirm them, or tell me what to change.")
-        text = last.content or ""
+        # consecutive turns are merged by the transcript builder; react to the latest one
+        text = (last.content or "").split("\n\n")[-1]
         if text.startswith("[system notice]"):
             if "rejected" in text:
                 return LlmResponse(text="Understood, I did not write anything.")
             return LlmResponse(text="Thanks — the write was carried out. What else can you tell me?")
         lower = text.lower()
         fields = _schema_fields(system)
+        props = _schema_properties(system)
         facts = []
         for line in text.splitlines():
             m = _FIELD_LINE.match(line)
             if m and (not fields or m.group(1).split(".")[0].split("[")[0] in fields):
-                facts.append({"path": m.group(1), "value": _coerce(m.group(2)), "rationale": "stated by respondent"})
+                value = _coerce(m.group(2))
+                if props.get(m.group(1), {}).get("type") == "array" and not isinstance(value, list):
+                    value = [value]
+                facts.append({"path": m.group(1), "value": value, "rationale": "stated by respondent"})
         if facts and "propose_facts" in names:
             return LlmResponse(text="", tool_calls=(ToolCall(self._id(), "propose_facts", {"facts": facts}),),
                                stop_reason="tool_use")
@@ -286,6 +291,16 @@ def _facts_from_tool_result(content: str) -> tuple[dict[str, Any], str | None]:
     facts = result.get("facts") if isinstance(result, dict) else None
     sid = payload.get("source_id")
     return (facts if isinstance(facts, dict) else {}), (sid if isinstance(sid, str) else None)
+
+
+def _schema_properties(system: str) -> dict[str, Any]:
+    m = re.search(r"<schema>(.*?)</schema>", system, re.S)
+    if not m:
+        return {}
+    try:
+        return dict(json.loads(m.group(1)).get("properties", {}))
+    except (json.JSONDecodeError, AttributeError):
+        return {}
 
 
 def _schema_fields(system: str) -> set[str]:

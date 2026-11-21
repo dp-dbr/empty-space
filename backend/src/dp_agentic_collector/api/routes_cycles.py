@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from ..domain.entities import CollectionJob, Cycle, Subject
 from ..domain.enums import CycleRecurrence
@@ -128,6 +129,15 @@ def diff(subject_id: str, from_version: str, to_version: str = "latest", other_s
     b = ctx.s.artifacts.get(ctx.actor, subject_id, to_version)
     return DiffOut(from_ref=d.from_ref, to_ref=d.to_ref, field_changes=[c.__dict__ for c in d.field_changes],
                    factsheet_diff=d.factsheet_diff, from_factsheet=a.factsheet_body, to_factsheet=b.factsheet_body)
+
+
+class JobIn(BaseModel):
+    assignee_id: str
+
+
+@router.post("/subjects/{subject_id}/jobs", response_model=CollectionJob, status_code=201)
+def add_job(subject_id: str, body: JobIn, ctx: Ctx = Depends(get_ctx)) -> CollectionJob:
+    return ctx.s.cycles.add_job(ctx.actor, subject_id, body.assignee_id)  # type: ignore[no-any-return]
 
 
 @router.post("/subjects/{subject_id}/approve", response_model=ArtifactOut)

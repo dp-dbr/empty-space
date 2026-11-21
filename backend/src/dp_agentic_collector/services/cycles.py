@@ -137,6 +137,30 @@ class CycleService(ServiceBase):
             uow.publish(events.JOB_CREATED, actor.user_id, {"job_id": job.job_id}, actor.trace_id)
         return subject, job
 
+    def add_job(self, actor: ActorContext, subject_id: str, assignee_id: str, *, due_date: datetime | None = None,
+                channel: str = "web") -> CollectionJob:
+        """Additional job for an existing subject (several people contribute to one subject).
+        Each job keeps its own base version, so concurrent submissions are detected as conflicts."""
+        with self.db.uow(actor.tenant_id) as uow:
+            subject = uow.repo(Subject).get(subject_id)
+            cycle = uow.repo(Cycle).get(subject.cycle_id)
+            can_manage_cycle(actor, cycle).enforce()
+            assignee = uow.repo(User).get(assignee_id)
+            if uow.repo(CollectionJob).first(subject_id=subject_id, assignee_id=assignee_id):
+                raise ValidationFailed("assignee already has a job for this subject")
+            job = CollectionJob(tenant_id=actor.tenant_id, subject_id=subject_id, cycle_id=cycle.cycle_id,
+                                assignee_id=assignee_id, due_date=due_date or cycle.due_date, channel=channel,
+                                base_version=self.app.artifact_store.latest_version(actor.tenant_id, subject_id))
+            conv = Conversation(tenant_id=actor.tenant_id, job_id=job.job_id, subject_id=subject_id,
+                                participants=[Participant(ParticipantKind.USER, assignee_id, assignee.name),
+                                              Participant(ParticipantKind.AGENT, cycle.agent_definition, "Collector")])
+            uow.repo(CollectionJob).add(job)
+            uow.repo(Conversation).add(conv)
+            self.audit(uow, actor, "job.create", f"job:{job.job_id}", subject_id=subject_id, assignee_id=assignee_id)
+            if cycle.status == CycleStatus.ACTIVE:
+                uow.publish(events.JOB_CREATED, actor.user_id, {"job_id": job.job_id}, actor.trace_id)
+        return job
+
     def init_from_previous(self, actor: ActorContext, cycle_id: str) -> list[CollectionJob]:
         """Initialize a recurring Cycle from the approved state of its predecessor (ADR-0003)."""
         with self.db.uow(actor.tenant_id) as uow:
@@ -145,21 +169,26 @@ class CycleService(ServiceBase):
             if not cycle.previous_cycle_id:
                 raise ValidationFailed("cycle has no previous_cycle_id")
             prev_subjects = uow.repo(Subject).list(cycle_id=cycle.previous_cycle_id)
-            prev_jobs = {j.subject_id: j for j in uow.repo(CollectionJob).list(cycle_id=cycle.previous_cycle_id)}
+            prev_jobs: dict[str, list[CollectionJob]] = {}
+            for j in uow.repo(CollectionJob).list(cycle_id=cycle.previous_cycle_id, order_by="created_at"):
+                prev_jobs.setdefault(j.subject_id, []).append(j)
         created = []
         store = self.app.artifact_store
         for ps in prev_subjects:
             approved = next((v for v in reversed(store.history(actor.tenant_id, ps.subject_id))
                              if v.header.status == ArtifactStatus.APPROVED), None)
-            prev_job = prev_jobs.get(ps.subject_id)
-            if prev_job is None:
+            jobs_of_subject = prev_jobs.get(ps.subject_id, [])
+            if not jobs_of_subject:
                 continue
+            first, others = jobs_of_subject[0], jobs_of_subject[1:]
             with self.db.uow(actor.tenant_id) as uow:
                 subject, job = self._create_subject_job(
-                    uow, actor, cycle, ps.name, prev_job.assignee_id, ps.lineage_key, ps.owners, cycle.due_date,
-                    prev_job.channel, {}, base_version=1 if approved else None)
-                uow.repo(SubjectGrant).add(SubjectGrant(tenant_id=actor.tenant_id, subject_id=ps.subject_id,
-                                                        user_id=prev_job.assignee_id, permission="read"))
+                    uow, actor, cycle, ps.name, first.assignee_id, ps.lineage_key, ps.owners, cycle.due_date,
+                    first.channel, {}, base_version=1 if approved else None)
+                for j in jobs_of_subject:
+                    uow.repo(SubjectGrant).add(SubjectGrant(tenant_id=actor.tenant_id, subject_id=ps.subject_id,
+                                                            user_id=j.assignee_id, permission="read"))
+            created.append(job)
             if approved:
                 src = SourceRef(kind="artifact", on_behalf_of=actor.user_id, retrieved_at=utcnow().isoformat(),
                                 reference=f"{ps.subject_id}@v{approved.header.version}",
@@ -171,7 +200,8 @@ class CycleService(ServiceBase):
                     change_reason=f"initialized from cycle {cycle.previous_cycle_id}", data=approved.data,
                     factsheet_body=approved.factsheet_body, sources=(src,)))
                 self.app.projection.project(version, subject.subject_type, subject.lineage_key)
-            created.append(job)
+            for j in others:
+                created.append(self.add_job(actor, subject.subject_id, j.assignee_id, channel=j.channel))
         self.audit_now(actor, "cycle.init_from_previous", f"cycle:{cycle_id}", jobs=len(created))
         return created
 
